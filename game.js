@@ -1,7 +1,7 @@
 // ── Config ──
 const W = 480, H = 640;
-const GRAVITY = 0.45;
-const FLAP = -7.5;
+const GRAVITY = 0.25;
+const FLAP = -5.5;
 const PIPE_SPEED = 2.5;
 const PIPE_WIDTH = 52;
 const PIPE_GAP = 150;
