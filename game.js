@@ -15,6 +15,7 @@ canvas.width = W;
 canvas.height = H;
 
 let bird, pipes, score, bestScore = 0, frame, state;
+let leaves = [], windT = 0; // background particles
 // state: 'ready' | 'playing' | 'dead'
 
 function reset() {
@@ -26,6 +27,19 @@ function reset() {
 }
 
 reset();
+
+// Initialize drifting leaves once
+if (!leaves.length) {
+  const LEAF_COUNT = 22;
+  leaves = Array.from({ length: LEAF_COUNT }, () => ({
+    x: Math.random() * W,
+    y: Math.random() * (H - 140) + 40,
+    s: Math.random() * 0.8 + 0.6,
+    v: Math.random() * 0.8 + 0.4,
+    a: Math.random() * Math.PI * 2,
+    hue: Math.random() < 0.6 ? 135 : 90
+  }));
+}
 
 // ── Input ──
 function flap() {
@@ -52,18 +66,18 @@ function drawBird() {
   bird.rotation += (Math.min(bird.vy * 3, 90) * Math.PI / 180 - bird.rotation) * 0.15;
   ctx.rotate(bird.rotation);
 
-  // Body
-  ctx.fillStyle = '#f7dc6f';
+  // Body (blue)
+  ctx.fillStyle = '#57a0ff';
   ctx.beginPath();
   ctx.ellipse(0, 0, BIRD_SIZE, BIRD_SIZE * 0.75, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = '#d4ac0d';
+  ctx.strokeStyle = '#2f73d9';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Wing
+  // Wing (lighter blue)
   const wingFlap = state === 'playing' ? Math.sin(frame * 0.3) * 6 : 0;
-  ctx.fillStyle = '#f0c929';
+  ctx.fillStyle = '#8bc0ff';
   ctx.beginPath();
   ctx.ellipse(-4, 2 + wingFlap, 10, 6, -0.3, 0, Math.PI * 2);
   ctx.fill();
@@ -155,6 +169,44 @@ function drawBackground() {
     ctx.ellipse(x - 20, cy + 2, 25, 12, 0, 0, Math.PI * 2);
     ctx.fill();
   });
+
+  // Wind streaks (subtle)
+  windT += state === 'playing' ? 0.015 : 0.006;
+  const wSpeed = 1.2 + Math.sin(windT) * 0.6;
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    const y = ((i * 90 + (frame * wSpeed)) % (H + 60)) - 30;
+    ctx.beginPath();
+    ctx.moveTo(W - ((frame * wSpeed + i * 40) % (W + 60)), y);
+    ctx.lineTo(W - ((frame * wSpeed + i * 40) % (W + 60)) + 40, y);
+    ctx.stroke();
+  }
+
+  // Leaves (foreground particles)
+  for (const L of leaves) {
+    // update
+    const vx = (PIPE_SPEED + L.v + wSpeed * 0.4);
+    L.x -= vx;
+    L.y += Math.sin(L.a + frame * 0.02) * 0.15;
+    L.a += 0.04;
+    if (L.x < -20) {
+      L.x = W + Math.random() * 60;
+      L.y = Math.random() * (H - 140) + 40;
+      L.v = Math.random() * 0.8 + 0.4;
+      L.s = Math.random() * 0.8 + 0.6;
+      L.hue = Math.random() < 0.6 ? 135 : 90;
+    }
+    // draw
+    ctx.save();
+    ctx.translate(L.x, L.y);
+    ctx.rotate(Math.sin(L.a) * 0.6);
+    ctx.fillStyle = `hsl(${L.hue} 45% 45% / 0.85)`;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 6 * L.s, 3 * L.s, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawScore() {
